@@ -2,14 +2,94 @@ import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
 import java.io.*;
+import org.apache.pdfbox.cos.COSDocument;
+import org.apache.pdfbox.io.RandomAccessFile;
+import org.apache.pdfbox.pdfparser.PDFParser;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.text.PDFTextStripper;
+import com.mongodb.DB;
+import com.mongodb.MongoClient;
 
 
 public class library_main {
-	static library_front front;
-	static library_menu menu ;
-	static library_create crt;
+ static library_front front;
+ static library_menu menu ;
+ static library_create crt;
+ static PDFManager pdf;
+ static MongoClient mongoClient;
+ static DB db;
+ 
+ static public void DbConnection() {
+	 try{   
+         mongoClient = new MongoClient( "localhost" , 27017 );
 
-//Login Frame..
+         db = mongoClient.getDB( "test" );
+         System.out.println("Connect to database successfully");
+     }catch(Exception e){}
+ }
+ 
+ static class PDFManager {
+
+	private PDFParser parser;
+	private PDFTextStripper pdfStripper;
+	private PDDocument pdDoc;
+	private COSDocument cosDoc;
+
+    private String Text;
+    private String filePath;
+    private File file;
+	    
+
+    public PDFManager() {}
+
+	public String toText() throws IOException {
+		this.pdfStripper = null;
+	    this.pdDoc = null;
+	    this.cosDoc = null;
+
+	    file = new File(filePath);
+	    parser = new PDFParser(new RandomAccessFile(file, "r")); // update for PDFBox V 2.0
+
+	    parser.parse();
+	    cosDoc = parser.getDocument();
+	    pdfStripper = new PDFTextStripper();
+	    pdDoc = new PDDocument(cosDoc);
+	    pdDoc.getNumberOfPages();
+	    pdfStripper.setStartPage(0);
+	    pdfStripper.setEndPage(pdDoc.getNumberOfPages());
+	    Text = pdfStripper.getText(pdDoc);
+	    return Text;
+	}
+
+	public void setFilePath(String filePath) {
+		this.filePath = filePath;
+	}
+
+	public PDDocument getPdDoc() {
+		return pdDoc;
+	}
+	    
+	public void pdf(String PDF) {
+		PDFManager pdfManager = new PDFManager();
+	    pdfManager.setFilePath(PDF);
+	    try {
+	    	String text = pdfManager.toText();
+	        Frame f = new Frame();
+	        TextArea discuss = new TextArea();
+	        discuss.setBounds(50,50,400,400);
+	    	discuss.setText(text);
+	    	discuss.setEditable(false);
+	    	f.add(discuss);
+	            
+	            
+            f.setSize(500,500);                             //frame declared
+	   		f.setLayout(null);  
+	    	f.setVisible(true);
+	           
+	        } catch (IOException ex) {}
+    }
+}
+	
  static class library_front implements ActionListener {
 	
 	Frame f;
@@ -314,10 +394,9 @@ public class library_main {
 	}
 }
 
-	public static void main(String[] args) {
-		front = new library_front(); {
-		
-		}
-	}
-
+ public static void main(String[] args) throws IOException{
+	 pdf = new PDFManager();
+	 pdf.pdf("pdf.pdf");
+	 DbConnection();
+ }	 
 }
