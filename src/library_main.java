@@ -1,6 +1,8 @@
 import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
+import java.io.*;
+
 
 public class library_main {
 	static library_front front;
@@ -214,7 +216,7 @@ public class library_main {
  static class library_menu implements ActionListener {
 	Frame f;
 	String user_name;
-	Label name;
+	Label name,discuss_panel;
 	Button discussion,logout,send;
 	Font f1,f2,f3;
 	TextArea discuss;
@@ -238,23 +240,47 @@ public class library_main {
 		logout.addActionListener(this);
 		f.add(logout);
 		
+		discuss_panel = new Label("Discussion");
+		discuss_panel.setBounds(290,120,160,30);
+		discuss_panel.setFont(f1);
+		f.add(discuss_panel);
+		
 		discuss = new TextArea();
-		discuss.setBounds(290,100,200,300);
+		discuss.setBounds(290,150,200,300);
+		discuss.setText(get_discussion());
 		discuss.setEditable(false);
 		f.add(discuss);
 		
 		text = new TextField();
-		text.setBounds(290,410,150,30);
+		text.setBounds(290,460,150,30);
 		f.add(text);
 		
 		send = new Button("send");
-		send.setBounds(450,410,50,30);
+		send.setBounds(450,460,50,30);
 		send.addActionListener(this);
 		f.add(send);
 				
 		f.setSize(500,500);
 		f.setLayout(null);
 		f.setVisible(true);
+	}
+	
+	String get_discussion() {
+		String discussion  = new String("");
+		try {
+			InputStream is = new FileInputStream("./discussion.txt");
+			BufferedReader buf = new BufferedReader(new InputStreamReader(is));
+			String line = buf.readLine();
+			StringBuilder sb = new StringBuilder();
+			while(line != null) {
+				sb.append(line).append("\n");
+				line = buf.readLine(); 
+			} 
+			discussion = sb.toString();
+			buf.close();
+		}catch(IOException error) {}
+		catch(ArrayIndexOutOfBoundsException error) {}
+		return discussion;
 	}
 	
 	public void actionPerformed(ActionEvent e) {
@@ -267,12 +293,22 @@ public class library_main {
 				return;
 			}
 			else if(e.getSource() == send) {
-				String chat = text.getText();
-				text.setText("");
-				if(chat!="") {
-					String discussion = discuss.getText();
-					discussion += '\n'+user_name+" : "+"  "+chat+"\n";
-					discuss.setText(discussion);
+				String discussion  = new String("");
+				String chat = new String(text.getText());
+				if(!chat.equals("")) {
+					text.setText("");
+					try {
+						chat ="\n"+user_name+" : "+chat+"\n";
+						discussion = get_discussion();
+						discussion += chat;
+						discuss.setText(discussion);
+						FileWriter fw = new FileWriter("./discussion.txt");
+						BufferedWriter bw = new BufferedWriter(fw);
+						bw.write(discussion);
+						bw.close();
+					} 
+					catch(IOException error) {}
+					catch(ArrayIndexOutOfBoundsException error) {}
 				}
 			}
 	}
