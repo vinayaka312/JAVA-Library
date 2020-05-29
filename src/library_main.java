@@ -2,12 +2,19 @@ import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
 import java.io.*;
+import java.util.ArrayList;
+
 import org.apache.pdfbox.cos.COSDocument;
 import org.apache.pdfbox.io.RandomAccessFile;
 import org.apache.pdfbox.pdfparser.PDFParser;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
+
+import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
+import com.mongodb.DBCollection;
+import com.mongodb.DBCursor;
+import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
 
 
@@ -18,12 +25,13 @@ public class library_main {
  static PDFManager pdf;
  static MongoClient mongoClient;
  static DB db;
+ static String user_name = new String("Vinay");
  
  static public void DbConnection() {
 	 try{   
          mongoClient = new MongoClient( "localhost" , 27017 );
 
-         db = mongoClient.getDB( "test" );
+         db = mongoClient.getDB( "library" );
          System.out.println("Connect to database successfully");
      }catch(Exception e){}
  }
@@ -151,22 +159,34 @@ public class library_main {
 	public void actionPerformed(ActionEvent e) {
 		
 		if(e.getSource() == login) {
+		try {
 			String user = email.getText();
-			result = user;
 			String pwd = new String(password.getPassword());
-			menu = new library_menu(result);
-			f.setVisible(false);
-			if(user.contains("@gmail.com") && pwd!="") {
-				result = user;
+			DBCollection coll = db.getCollection("users");
+			BasicDBObject login = new BasicDBObject();
+			ArrayList<BasicDBObject> obj = new ArrayList<BasicDBObject>();
+			obj.add(new BasicDBObject("email", user));
+			obj.add(new BasicDBObject("password", pwd));
+			login.put("$and", obj);
+			DBObject OBJ = coll.findOne(login);
+			if(OBJ.get("name")!=null) {
+				user_name = new String((String) OBJ.get("name"));
 				email.setText("");
 				password.setText("");
+				menu = new library_menu();
 				f.setVisible(false);
-				return;
 			}
 			else {
 				email.setText("");
 				password.setText("");
+				f.setVisible(false);
 			}
+		}
+			catch(Exception error) {
+				email.setText("");
+				password.setText("");
+			}
+			
 		}
 		else if(e.getSource() == create) {
 			f.setVisible(false);
@@ -183,9 +203,6 @@ public class library_main {
 
  static class library_create extends Frame implements ActionListener {
 	
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = 1L;
 	TextField name,email;
 	JPasswordField password,re_password;
@@ -259,35 +276,72 @@ public class library_main {
 	public void actionPerformed(ActionEvent e) {
 		
 		if(e.getSource() == back) {
-			disable = true;
-			dispose();
+			name.setText("");
+			password.setText("");
+			re_password.setText("");
+			email.setText("");
+			setVisible(false);
+			front.f.setVisible(true);
 		}
 		
 		else if(e.getSource() == create) {
-			String user = email.getText();
+			String user = name.getText();
+			String mail = email.getText();
+			String pass = new String(password.getPassword());
+			String re_pass = new String(re_password.getPassword());
+			
 			try {
-				long long_pwd = Long.valueOf(new String(password.getPassword()));
-				long long_re_pwd = Long.valueOf(new String(re_password.getPassword()));
-				if(user.contains("@gmail.com")) {
-					if(long_pwd==long_re_pwd) {
-						disable = true;
-						dispose();
-						return ;
+				if(user.equals("")) 
+					email.setText("");
+				else {
+					if(mail.contains("@gmail.com")) {
+						if(pass.equals(re_pass)) {
+							DBCollection coll = db.getCollection("users");
+							BasicDBObject whereQuery = new BasicDBObject();
+							whereQuery.put("email", mail);
+							DBCursor cursor = coll.find(whereQuery);
+							if(cursor.count()==0) {
+								BasicDBObject doc = new BasicDBObject("name", user)
+								          .append("email", mail)
+								          .append("password", pass);
+								coll.insert(doc);
+								name.setText("");
+								password.setText("");
+								re_password.setText("");
+								email.setText("");
+								setVisible(false);
+								front.f.setVisible(true);
+							}
+							else {
+								 password.setText("");
+								 re_password.setText("");
+								 email.setText("");
+							}
+						}
+						else {
+							 name.setText("");
+							 password.setText("");
+							 re_password.setText("");
+							 email.setText("");
+						}
 					}
 					else {
 						password.setText("");
 						re_password.setText("");
 					}
-				}	
-				
-				else 
-					email.setText("");
+				}
+					
 			}
 			catch(NumberFormatException exc) {
 				password.setText("");
 				re_password.setText("");
 			}
-			
+			catch(Exception exc) {
+				name.setText("");
+				email.setText("");
+				password.setText("");
+				re_password.setText("");
+			}
 		}
 		
 	}
@@ -295,52 +349,50 @@ public class library_main {
 
  static class library_menu implements ActionListener {
 	Frame f;
-	String user_name;
 	Label name,discuss_panel;
 	Button discussion,logout,send;
 	Font f1,f2,f3;
 	TextArea discuss;
-	TextField text;
+		TextField text,searh;
 	
-	library_menu(String user){
+	library_menu(){
 		
-		user_name = new String(user);
 		f = new Frame("Digital Library");
 		
 		f1 = new Font("Times of Roman", Font.PLAIN, 20);
 		f2 = new Font("Times of Roman", Font.PLAIN, 16);
 		
-		name  = new Label(user);
+		name  = new Label(user_name);
 		name.setBounds(10,50,110,30);
 		name.setFont(f1);
 		f.add(name);
 		
 		logout = new Button("Log Out");
-		logout.setBounds(380,50,100,30);
+		logout.setBounds(880,50,100,30);
 		logout.addActionListener(this);
 		f.add(logout);
 		
-		discuss_panel = new Label("Discussion");
-		discuss_panel.setBounds(290,120,160,30);
+		discuss_panel = new Label("Discussions");
+		discuss_panel.setBounds(690,120,160,30);
 		discuss_panel.setFont(f1);
 		f.add(discuss_panel);
 		
 		discuss = new TextArea();
-		discuss.setBounds(290,150,200,300);
+		discuss.setBounds(690,150,300,400);
 		discuss.setText(get_discussion());
 		discuss.setEditable(false);
 		f.add(discuss);
 		
 		text = new TextField();
-		text.setBounds(290,460,150,30);
+		text.setBounds(690,560,250,30);
 		f.add(text);
 		
 		send = new Button("send");
-		send.setBounds(450,460,50,30);
+		send.setBounds(950,560,50,30);
 		send.addActionListener(this);
 		f.add(send);
 				
-		f.setSize(500,500);
+		f.setSize(1000,700);
 		f.setLayout(null);
 		f.setVisible(true);
 	}
@@ -369,7 +421,7 @@ public class library_main {
 			}
 			else if(e.getSource() == logout) {
 				menu.f.dispose();
-				front.f.setVisible(true);
+//				front.f.setVisible(true);
 				return;
 			}
 			else if(e.getSource() == send) {
@@ -395,8 +447,19 @@ public class library_main {
 }
 
  public static void main(String[] args) throws IOException{
-	 pdf = new PDFManager();
-	 pdf.pdf("pdf.pdf");
 	 DbConnection();
+	 menu = new library_menu();
+	
+	 /* DBCollection coll = db.getCollection("mycol");
+	 DBCursor cursor = coll.find();
+	 while (cursor.hasNext()) {
+		 DBObject obj = cursor.next();
+		 String name = (String) obj.get("title");
+		 System.out.print(name);
+	 }
+	*/
+	 
+	 
+	 
  }	 
 }
