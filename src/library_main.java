@@ -145,7 +145,7 @@ public class library_main {
 	public void actionPerformed(ActionEvent e)  {
 		if(e.getSource() == back) {
 			f.setVisible(false);
-			//menu.frame.setVisible(true);
+			menu.frame.setVisible(true);
 		}
 		else if(e.getSource() == send) {
 			String discussion  = new String("");
@@ -419,24 +419,22 @@ public class library_main {
 
  
  static class library_menu implements ActionListener {
-	public JFrame frame;
-	public JLabel name,discuss_panel;
-	public Font f1,f2,f3;
-	public JTextArea discuss;
-	public JTextField text,searh;
-	public JTextField textField;
-    public JButton discussion,logout,send;
-    public JPanel panel1,panel2,panel3;
-	public JButton[] allbtn = new JButton[14];
-	public String[] famous_books = new String[10];
-	public String[] search = new String[5];
-	public String[] all_books = new String[100];
-	public int total_books = 0; 
-	public int total_search = 0;
-	public JButton[] famousbtn = new JButton[10];
-	public JButton[] searchbtn = new JButton[5];
-	public JTabbedPane tabbedPane;
-	
+	private JFrame frame;
+	private JLabel name,discuss_panel;
+	private Font f1;
+	private TextArea discuss;
+	private JTextField text;
+	private TextField textField;
+	private JButton logout,send,btnSearch;
+    private JPanel panel1,panel2,panel3;
+    private JButton[] allbtn = new JButton[14];
+    private String[] famous_books = new String[10];
+    private String[] search = new String[5];
+    private String[] all_books = new String[100];
+    private int total_search = 0;
+    private JButton[] famousbtn = new JButton[10];
+    private JButton[] searchbtn = new JButton[5];
+    private JTabbedPane tabbedPane;	
 	
 	public void all_books() {
 		 try {
@@ -452,7 +450,6 @@ public class library_main {
 				 DBObject obj = cursor.next();
 				 all_books[i] = (String) obj.get("name");
 			 }
-			 total_books = i;
 		 }catch (Exception e) {
 			 System.out.print("Error Occured...!");
 		 }
@@ -479,27 +476,23 @@ public class library_main {
 			}
 	}
 	 
-	@SuppressWarnings("finally")
+	 
 	public void search(String book_name) {
-			 System.out.println(book_name);
-			 DBCollection coll = db.getCollection("pdf");
-			 BasicDBObject query = new BasicDBObject();
-			 query.put("$search",book_name);
-			 DBCursor cursor = coll.find(new BasicDBObject("$text",query));
-			 int i=0;
-			 total_search=0;
 			 try {
+				 DBCollection coll = db.getCollection("pdf");
+				 BasicDBObject query = new BasicDBObject();
+				 query.put("$search",book_name);
+				 DBCursor cursor = coll.find(new BasicDBObject("$text",query));
+				 int i=0;
+				 total_search=0;
 				 while(cursor.hasNext()) {
 					 DBObject obj = cursor.next();
 					 total_search++;
 					 search[i++] = (String)obj.get("name");
-					 
-				 }discuss.setEditable(false);
-			 }catch (Exception e) {
-				 System.out.println(e);
+				 }
 			 }
-			 finally {
-				 return;
+			 catch (Exception e) {
+				 System.out.println(e);
 			 }
 		 } 
 
@@ -553,6 +546,7 @@ public class library_main {
 	}
 	public JPanel add_search_books() {
 		JPanel panel = new JPanel();
+		panel.setLayout(null);
 		 int k=0,discussTextheight=40;
 		 
 		 for(int i=0;i<total_search;i++) {
@@ -572,7 +566,6 @@ public class library_main {
 		frame.getContentPane().setLayout(null);
 		
 		f1 = new Font("Times of Roman", Font.PLAIN, 20);
-		f2 = new Font("Times of Roman", Font.PLAIN, 16);
 		
 		name  = new JLabel(user_name);
 		name.setBounds(10,50,110,30);
@@ -589,7 +582,7 @@ public class library_main {
 		discuss_panel.setFont(f1);
 		frame.add(discuss_panel);
 		
-		discuss = new JTextArea();
+		discuss = new TextArea();
 		discuss.setBounds(690,150,300,400);
 		discuss.setText(get_discussion());
 		discuss.setEditable(false);
@@ -625,12 +618,12 @@ public class library_main {
 		tabbedPane.addTab("Search", null, panel3, null);
 		panel3.setLayout(null);
 		
-		textField = new JTextField();
+		textField = new TextField();
 		textField.setBounds(20, 20, 250, 30);
 		panel3.add(textField);
 		textField.setColumns(10);
 		
-		JButton btnSearch = new JButton("Search");
+		btnSearch = new JButton("Search");
 		btnSearch.addActionListener(this);
 		btnSearch.setBounds(275, 20, 93, 30);
 		panel3.add(btnSearch);
@@ -658,8 +651,23 @@ public class library_main {
 	}
 	
 	public void setSearchPanel() {
+		try {
+		tabbedPane.remove(panel3);
 		panel3 = add_search_books();
+		textField = new TextField();
+		textField.setBounds(20, 20, 250, 30);
+		panel3.add(textField);
+		textField.setColumns(10);
+		
+		btnSearch = new JButton("Search");
+		btnSearch.addActionListener(this);
+		btnSearch.setBounds(275, 20, 93, 30);
+		panel3.add(btnSearch);
+		tabbedPane.addTab("Search", null, panel3, null);
 		tabbedPane.setSelectedIndex(2);
+		}catch(Exception e) {
+			System.out.print(e);
+		}
 	}
 	
 	public void actionPerformed(ActionEvent e) {
@@ -687,11 +695,13 @@ public class library_main {
 					  	catch(IOException error) {}
 					  	catch(ArrayIndexOutOfBoundsException error) {}
 					  }
-		case "Search" : 	if(!textField.getText().isBlank()) {
+					   break;
+		case "Search" : if(!textField.getText().isBlank()) {
 							String book_name = textField.getText();
 							search(book_name);
 							setSearchPanel();
 						}
+						break;
 		default : String book = b.getText();
 				  DBCollection coll = db.getCollection("pdf");
 				  BasicDBObject query = new BasicDBObject();
@@ -706,21 +716,8 @@ public class library_main {
 
  public static void main(String[] args) throws IOException{
 	 DbConnection();
-//	 search();
-//	  System.out.print("IADHG");
 	 pdf = new PDFManager();
-	 pdf.pdf("./pdf.pdf","./discussion.txt");
-	 //menu = new library_menu();
-	// new PDFManager().pdf("./pdf/CO/Computer organization.pdf");
-	 /* DBCollection coll = db.getCollection("mycol");
-	 DBCursor cursor = coll.find();
-	 while (cursor.hasNext()) {
-		 DBObject obj = cursor.next();
-		 String name = (String) obj.get("title");
-		 System.out.print(name);
-	 }
-	*/
-	 
+	 front = new library_front();
  }	 
 
 }
