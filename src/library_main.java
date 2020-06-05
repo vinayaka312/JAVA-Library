@@ -479,6 +479,7 @@ public class library_main {
 			}
 	}
 	 
+	@SuppressWarnings("finally")
 	public void search(String book_name) {
 			 System.out.println(book_name);
 			 DBCollection coll = db.getCollection("pdf");
