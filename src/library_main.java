@@ -145,7 +145,7 @@ public class library_main {
 	public void actionPerformed(ActionEvent e)  {
 		if(e.getSource() == back) {
 			f.setVisible(false);
-			menu.frame.setVisible(true);
+			 menu.frame.setVisible(true);
 		}
 		else if(e.getSource() == send) {
 			String discussion  = new String("");
