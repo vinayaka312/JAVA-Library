@@ -13,7 +13,7 @@ import org.apache.pdfbox.text.PDFTextStripper;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
-import com.mongodb.DBCursor;
+import com.mongodb.DBCursor;	
 import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
 
@@ -23,31 +23,36 @@ public class library_main {
  static library_menu menu ;
  static library_create crt;
  static PDFManager pdf;
- static MongoClient mongoClient;
+ 
  static DB db;
+
  static String user_name = new String("Vinay");
  
+
  static public void DbConnection() {
 	 try{   
-         mongoClient = new MongoClient( "localhost" , 27017 );
+		 MongoClient mongoClient = new MongoClient( "localhost" , 27017 );
 
          db = mongoClient.getDB( "library" );
          System.out.println("Connect to database successfully");
      }catch(Exception e){}
  }
  
- static class PDFManager {
+ static class PDFManager implements ActionListener {
 
 	private PDFParser parser;
 	private PDFTextStripper pdfStripper;
 	private PDDocument pdDoc;
 	private COSDocument cosDoc;
-
+    private JTextField discussText;
     private String Text;
     private String filePath;
     private File file;
-	    
-
+    JFrame f;
+    TextArea discuss;
+    String discussion_path;
+    JButton back,send;
+    
     public PDFManager() {}
 
 	public String toText() throws IOException {
@@ -76,26 +81,91 @@ public class library_main {
 	public PDDocument getPdDoc() {
 		return pdDoc;
 	}
+	String get_discussion1(String duscussionPath) {
+		String discussion  = new String("");
+		try {
+			InputStream is = new FileInputStream(duscussionPath);
+			BufferedReader buf = new BufferedReader(new InputStreamReader(is));
+			String line = buf.readLine();
+			StringBuilder sb = new StringBuilder();
+			while(line != null) {
+				sb.append(line).append("\n");
+				line = buf.readLine(); 
+			} 
+			discussion = sb.toString();
+			buf.close();
+		}catch(IOException error) {}
+		catch(ArrayIndexOutOfBoundsException error) {}
+		return discussion;
+	}
 	    
-	public void pdf(String PDF) {
+	public void pdf(String PDF,String discussionPath) {
+		discussion_path = new String(discussionPath);
 		PDFManager pdfManager = new PDFManager();
 	    pdfManager.setFilePath(PDF);
 	    try {
 	    	String text = pdfManager.toText();
-	        Frame f = new Frame();
-	        TextArea discuss = new TextArea();
-	        discuss.setBounds(50,50,400,400);
-	    	discuss.setText(text);
-	    	discuss.setEditable(false);
-	    	f.add(discuss);
-	            
-	            
-            f.setSize(500,500);                             //frame declared
-	   		f.setLayout(null);  
+	        f = new JFrame();
+	        back = new JButton("Back");
+	        back.setBounds(880,50,100,30);
+	        back.addActionListener(this);
+			f.add(back);
+			
+			JLabel discuss_panel = new JLabel("Discussions");
+			discuss_panel.setBounds(690,120,160,30);
+			f.add(discuss_panel);
+			
+			discuss = new TextArea();
+			discuss.setBounds(690,150,300,400);
+			discuss.setText(get_discussion1(discussionPath));
+			discuss.setEditable(false);
+			f.add(discuss);
+			
+			discussText = new JTextField();
+			discussText.setBounds(690,560,230,30);
+			f.add(discussText);
+	        
+			send = new JButton("send");
+			send.setBounds(940,560,50,30);
+			send.addActionListener(this);
+			f.add(send);
+			
+	        TextArea discuss1 = new TextArea(600,550);
+	        discuss1.setBounds(50,50,600,550);
+	    	discuss1.setText(text);
+	    	discuss1.setEditable(false);
+	    	f.add(discuss1);
+	        
+            f.setSize(1000,700);                             //frame declared
+	   		f.getContentPane().setLayout(null);  
 	    	f.setVisible(true);
 	           
 	        } catch (IOException ex) {}
     }
+	public void actionPerformed(ActionEvent e)  {
+		if(e.getSource() == back) {
+			f.setVisible(false);
+			//menu.frame.setVisible(true);
+		}
+		else if(e.getSource() == send) {
+			String discussion  = new String("");
+			  String chat = new String(discussText.getText());
+			  if(!discussText.getText().isBlank()) {
+				  discussText.setText("");
+			  	try {
+				  	chat ="\n"+user_name+" : "+chat+"\n";
+			  		discussion = get_discussion1(discussion_path);
+			  		discussion += chat;
+			  		discuss.setText(discussion);
+			  		FileWriter fw = new FileWriter(discussion_path);
+			  		BufferedWriter bw = new BufferedWriter(fw);
+			  		bw.write(discussion);
+			  		bw.close();
+			  	} 
+			  	catch(Exception error) {System.out.println(error);}
+			  }
+		}
+	}
 }
 	
  static class library_front implements ActionListener {
@@ -347,54 +417,225 @@ public class library_main {
 	}
 }
 
+ 
  static class library_menu implements ActionListener {
-	Frame f;
-	Label name,discuss_panel;
-	Button discussion,logout,send;
-	Font f1,f2,f3;
-	TextArea discuss;
-		TextField text,searh;
+	public JFrame frame;
+	public JLabel name,discuss_panel;
+	public Font f1,f2,f3;
+	public JTextArea discuss;
+	public JTextField text,searh;
+	public JTextField textField;
+    public JButton discussion,logout,send;
+    public JPanel panel1,panel2,panel3;
+	public JButton[] allbtn = new JButton[14];
+	public String[] famous_books = new String[10];
+	public String[] search = new String[5];
+	public String[] all_books = new String[100];
+	public int total_books = 0; 
+	public int total_search = 0;
+	public JButton[] famousbtn = new JButton[10];
+	public JButton[] searchbtn = new JButton[5];
+	public JTabbedPane tabbedPane;
+	
+	
+	public void all_books() {
+		 try {
+			 
+			 DBCollection coll = db.getCollection("pdf");
+			 BasicDBObject allQuery = new BasicDBObject();
+			 BasicDBObject fields = new BasicDBObject();
+			 fields.put("name", 1);
+			 DBCursor cursor = coll.find(allQuery, fields);
+			 int i=-1;
+			 while (cursor.hasNext()) {
+				 i++;
+				 DBObject obj = cursor.next();
+				 all_books[i] = (String) obj.get("name");
+			 }
+			 total_books = i;
+		 }catch (Exception e) {
+			 System.out.print("Error Occured...!");
+		 }
+		 
+	 }
+
+	 public void famous_books() {
+		 
+			DBCollection coll = db.getCollection("pdf");
+			DBCursor car = coll.find(new BasicDBObject(),new BasicDBObject("name",1)).sort(new BasicDBObject("views", -1));
+			int i=0;
+			try {
+				while (car.hasNext()) {
+					if(i<10) {
+						DBObject obj = car.next();
+						famous_books[i++] = (String) obj.get("name"); 
+					}
+				
+					else
+						break;
+				}
+			} finally {
+				car.close();
+			}
+	}
+	 
+	public void search(String book_name) {
+			 System.out.println(book_name);
+			 DBCollection coll = db.getCollection("pdf");
+			 BasicDBObject query = new BasicDBObject();
+			 query.put("$search",book_name);
+			 DBCursor cursor = coll.find(new BasicDBObject("$text",query));
+			 int i=0;
+			 total_search=0;
+			 try {
+				 while(cursor.hasNext()) {
+					 DBObject obj = cursor.next();
+					 total_search++;
+					 search[i++] = (String)obj.get("name");
+					 
+				 }discuss.setEditable(false);
+			 }catch (Exception e) {
+				 System.out.println(e);
+			 }
+			 finally {
+				 return;
+			 }
+		 } 
+
+	public JPanel add_famous_books() {
+		JPanel panel = new JPanel();
+		 int k=0,height=70;
+		 
+		 for(int i=0;i<5;i++) {
+			 JButton btn = new JButton(famous_books[k]);
+			 send = new JButton("send");
+				send.setBounds(950,560,50,30);
+				send.addActionListener(this);
+				frame.add(send);btn.setBounds(20, 42+(i*height), 250,30);
+			 btn.addActionListener(this);
+			 famousbtn[k] = btn;
+			 panel.add(famousbtn[k]);
+			 k++;
+		 }
+		 for(int i=0;i<5;i++) {
+			 JButton btn = new JButton(famous_books[k]);
+			 btn.setBounds(315, 42+(i*height), 250,30);
+			 btn.addActionListener(this);
+			 famousbtn[k] = btn;
+			 panel.add(famousbtn[k]);
+			 k++;
+		 }
+		 return panel;
+	 }
+	
+	public JPanel add_all_books() {
+		JPanel panel = new JPanel();
+		 int k=0,height=55;
+		 
+		 for(int i=0;i<7;i++) {
+			 JButton btn = new JButton(all_books[k]);
+			 btn.setBounds(20, 25+(i*height), 250,30);
+			 btn.addActionListener(this);
+			 allbtn[k] = btn;
+			 panel.add(allbtn[k]);
+			 k++;
+		 }
+		 for(int i=0;i<7;i++) {
+			 JButton btn = new JButton(all_books[k]);
+			 btn.setBounds(315, 25+(i*height), 250,30);
+			 btn.addActionListener(this);
+			 allbtn[k] = btn;
+			 panel.add(allbtn[k]);
+			 k++;
+		 }
+		 return panel;
+	}
+	public JPanel add_search_books() {
+		JPanel panel = new JPanel();
+		 int k=0,discussTextheight=40;
+		 
+		 for(int i=0;i<total_search;i++) {
+			 JButton btn = new JButton(search[k]);
+			 btn.setBounds(20,70+(i*discussTextheight), 250,30);
+			 btn.addActionListener(this);
+			 searchbtn[k] = btn;
+			 panel.add(searchbtn[k]);
+			 k++;
+		 }
+		 return panel;
+	}
 	
 	library_menu(){
 		
-		f = new Frame("Digital Library");
+		frame = new JFrame();
+		frame.getContentPane().setLayout(null);
 		
 		f1 = new Font("Times of Roman", Font.PLAIN, 20);
 		f2 = new Font("Times of Roman", Font.PLAIN, 16);
 		
-		name  = new Label(user_name);
+		name  = new JLabel(user_name);
 		name.setBounds(10,50,110,30);
 		name.setFont(f1);
-		f.add(name);
+		frame.add(name);
 		
-		logout = new Button("Log Out");
+		logout = new JButton("Log Out");
 		logout.setBounds(880,50,100,30);
 		logout.addActionListener(this);
-		f.add(logout);
+		frame.add(logout);
 		
-		discuss_panel = new Label("Discussions");
+		discuss_panel = new JLabel("Discussions");
 		discuss_panel.setBounds(690,120,160,30);
 		discuss_panel.setFont(f1);
-		f.add(discuss_panel);
+		frame.add(discuss_panel);
 		
-		discuss = new TextArea();
+		discuss = new JTextArea();
 		discuss.setBounds(690,150,300,400);
 		discuss.setText(get_discussion());
 		discuss.setEditable(false);
-		f.add(discuss);
+		frame.add(discuss);
 		
-		text = new TextField();
+		text = new JTextField();
 		text.setBounds(690,560,250,30);
-		f.add(text);
+		frame.add(text);
 		
-		send = new Button("send");
+		send = new JButton("send");
 		send.setBounds(950,560,50,30);
 		send.addActionListener(this);
-		f.add(send);
+		frame.add(send);
 				
-		f.setSize(1000,700);
-		f.setLayout(null);
-		f.setVisible(true);
+		tabbedPane = new JTabbedPane(JTabbedPane.TOP);
+		tabbedPane.setBounds(32, 111, 585, 445);
+		frame.getContentPane().add(tabbedPane);
+		
+		panel1 = new JPanel();
+		famous_books();
+		panel1 = add_famous_books();
+		tabbedPane.addTab("Famous Books", null, panel1, null);
+		panel1.setLayout(null);
+		
+		
+		panel2 = new JPanel();
+		all_books();
+		panel2 = add_all_books();
+		tabbedPane.addTab("All Books", null, panel2, null);
+		panel2.setLayout(null);
+		
+		panel3 = new JPanel();
+		tabbedPane.addTab("Search", null, panel3, null);
+		panel3.setLayout(null);
+		
+		textField = new JTextField();
+		textField.setBounds(20, 20, 250, 30);
+		panel3.add(textField);
+		textField.setColumns(10);
+		
+		JButton btnSearch = new JButton("Search");
+		btnSearch.addActionListener(this);
+		btnSearch.setBounds(275, 20, 93, 30);
+		panel3.add(btnSearch);
+		
+		frame.setVisible(true);
+		frame.setSize(1000,700);
 	}
 	
 	String get_discussion() {
@@ -415,41 +656,61 @@ public class library_main {
 		return discussion;
 	}
 	
+	public void setSearchPanel() {
+		panel3 = add_search_books();
+		tabbedPane.setSelectedIndex(2);
+	}
+	
 	public void actionPerformed(ActionEvent e) {
-			if (e.getSource() == name) {
-				name.setText("Clicked"); 
-			}
-			else if(e.getSource() == logout) {
-				menu.f.dispose();
-//				front.f.setVisible(true);
-				return;
-			}
-			else if(e.getSource() == send) {
-				String discussion  = new String("");
-				String chat = new String(text.getText());
-				if(!chat.equals("")) {
-					text.setText("");
-					try {
-						chat ="\n"+user_name+" : "+chat+"\n";
-						discussion = get_discussion();
-						discussion += chat;
-						discuss.setText(discussion);
-						FileWriter fw = new FileWriter("./discussion.txt");
-						BufferedWriter bw = new BufferedWriter(fw);
-						bw.write(discussion);
-						bw.close();
-					} 
-					catch(IOException error) {}
-					catch(ArrayIndexOutOfBoundsException error) {}
-				}
-			}
+		Object o = e. getSource();
+		JButton b = null;
+		b = (JButton)o;
+		
+		switch(b.getText()) {
+		case "Log Out" : menu.frame.dispose();
+						 return;
+		case "send" : String discussion  = new String("");
+					  String chat = new String(text.getText());
+					  if(!text.getText().isBlank()) {
+						text.setText("");
+					  	try {
+						  	chat ="\n"+user_name+" : "+chat+"\n";
+					  		discussion = get_discussion();
+					  		discussion += chat;
+					  		discuss.setText(discussion);
+					  		FileWriter fw = new FileWriter("./discussion.txt");
+					  		BufferedWriter bw = new BufferedWriter(fw);
+					  		bw.write(discussion);
+					  		bw.close();
+					  	} 
+					  	catch(IOException error) {}
+					  	catch(ArrayIndexOutOfBoundsException error) {}
+					  }
+		case "Search" : 	if(!textField.getText().isBlank()) {
+							String book_name = textField.getText();
+							search(book_name);
+							setSearchPanel();
+						}
+		default : String book = b.getText();
+				  DBCollection coll = db.getCollection("pdf");
+				  BasicDBObject query = new BasicDBObject();
+			      query.put("name",new BasicDBObject("$eq",book));
+			      DBObject obj = coll.findOne(query);
+			      coll.update(query,new BasicDBObject("$inc",new BasicDBObject("views",1)));
+			      pdf.pdf((String)obj.get("url"),(String)obj.get("discussion"));
+			      frame.setVisible(false);
+		}
 	}
 }
 
  public static void main(String[] args) throws IOException{
 	 DbConnection();
-	 menu = new library_menu();
-	
+//	 search();
+//	  System.out.print("IADHG");
+	 pdf = new PDFManager();
+	 pdf.pdf("./pdf.pdf","./discussion.txt");
+	 //menu = new library_menu();
+	// new PDFManager().pdf("./pdf/CO/Computer organization.pdf");
 	 /* DBCollection coll = db.getCollection("mycol");
 	 DBCursor cursor = coll.find();
 	 while (cursor.hasNext()) {
@@ -459,7 +720,6 @@ public class library_main {
 	 }
 	*/
 	 
-	 
-	 
  }	 
+
 }
