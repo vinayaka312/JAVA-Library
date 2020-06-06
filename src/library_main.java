@@ -126,7 +126,7 @@ public class library_main {
 			f.add(discussText);
 	        
 			send = new JButton("send");
-			send.setBounds(940,560,50,30);
+			send.setBounds(930,560,70,30);
 			send.addActionListener(this);
 			f.add(send);
 			
@@ -589,11 +589,11 @@ public class library_main {
 		frame.add(discuss);
 		
 		text = new JTextField();
-		text.setBounds(690,560,250,30);
+		text.setBounds(690,560,230,30);
 		frame.add(text);
 		
 		send = new JButton("send");
-		send.setBounds(950,560,50,30);
+		send.setBounds(930,560,70,30);
 		send.addActionListener(this);
 		frame.add(send);
 				
